@@ -1,0 +1,3 @@
+name: MastodonPulumi
+runtime: dotnet
+description: Deploy Mastodon to GCP.
