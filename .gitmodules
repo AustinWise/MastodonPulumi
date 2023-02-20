@@ -1,0 +1,4 @@
+[submodule "chart"]
+	path = chart
+	url = https://github.com/mastodon/chart
+	branch = main
