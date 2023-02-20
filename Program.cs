@@ -5,6 +5,9 @@ using Pulumi.Gcp.Storage;
 using Pulumi.Gcp.Storage.Inputs;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 // TODO: figure out how we should select the zone and region
 const string REGION = "us-central1";
@@ -12,6 +15,15 @@ const string ZONE = REGION + "-a";
 
 const string DNS_ZONE_NAME = "happy-turtle-zone";
 const string DNS_NAME = "happy-turtle.dev";
+
+static async Task<IPAddress> GetMyIpAddressAsync()
+{
+    using var httpClient = new HttpClient();
+    string myIpStr = await httpClient.GetStringAsync("https://api.ipify.org");
+    return IPAddress.Parse(myIpStr);
+}
+
+IPAddress myIp = await GetMyIpAddressAsync();
 
 return await Deployment.RunAsync(() =>
 {
@@ -33,7 +45,7 @@ return await Deployment.RunAsync(() =>
         },
         SourceRanges = new List<string>()
         {
-            // TODO: get current user's IP address
+            myIp.ToString(),
         },
     });
 
