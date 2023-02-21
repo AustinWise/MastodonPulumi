@@ -1,92 +1,64 @@
-﻿using Pulumi;
+﻿using MastodonPulumi;
+using Pulumi;
 using Pulumi.Gcp.Compute;
 using Pulumi.Gcp.Compute.Inputs;
+using Pulumi.Gcp.ServiceAccount;
 using Pulumi.Gcp.Storage;
 using Pulumi.Gcp.Storage.Inputs;
+using Pulumi.Kubernetes.Helm;
+using Pulumi.Kubernetes.Helm.V3;
+using Pulumi.Random;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-// TODO: figure out how we should select the zone and region
-const string REGION = "us-central1";
-const string ZONE = REGION + "-a";
-
-const string DNS_ZONE_NAME = "happy-turtle-zone";
-const string DNS_NAME = "happy-turtle.dev";
-
-static async Task<IPAddress> GetMyIpAddressAsync()
+if (args.Length != 0 && args[0] == "gen-vapid")
 {
-    using var httpClient = new HttpClient();
-    string myIpStr = await httpClient.GetStringAsync("https://api.ipify.org");
-    return IPAddress.Parse(myIpStr);
+    (string pubKey, string privKey) = VapidKey.GenKeys();
+    System.Console.WriteLine("Run these commands to save the secret keys:");
+    System.Console.WriteLine($"  pulumi config set --secret {VapidKey.PUB_SECRET_NAME} \"{pubKey}\"");
+    System.Console.WriteLine($"  pulumi config set --secret {VapidKey.PRIV_SECRET_NAME} \"{privKey}\"");
+    return 1;
 }
-
-IPAddress myIp = await GetMyIpAddressAsync();
 
 return await Deployment.RunAsync(() =>
 {
-    var network = new Network("mastodon-network");
+    var cfg = new Config();
+    var settings = new Settings(cfg);
 
-    var firewall = new Firewall("mastodon-firewall", new FirewallArgs()
+    //var firewall = new Firewall("mastodon-firewall", new FirewallArgs()
+    //{
+    //    Network = network.Id,
+    //    Allows = new List<FirewallAllowArgs>()
+    //    {
+    //        new FirewallAllowArgs()
+    //        {
+    //            Ports = new List<string>()
+    //            {
+    //                "80",
+    //                "443",
+    //            },
+    //            Protocol = "tcp",
+    //        },
+    //    },
+    //    SourceRanges = new List<string>()
+    //    {
+    //        myIp.ToString(),
+    //    },
+    //});
+
+    // file bucket
+
+    var serviceAccount = new Account("bucket-access-account", new AccountArgs()
     {
-        Network = network.Id,
-        Allows = new List<FirewallAllowArgs>()
-        {
-            new FirewallAllowArgs()
-            {
-                Ports = new List<string>()
-                {
-                    "22"
-                },
-                Protocol = "tcp",
-            },
-        },
-        SourceRanges = new List<string>()
-        {
-            myIp.ToString(),
-        },
+        AccountId = "bucket-access",
+        Description = "Service account for accessing the storage bucket.",
     });
 
-
-    var webServer = new Instance("web-server", new InstanceArgs()
-    {
-        BootDisk = new InstanceBootDiskArgs()
-        {
-            InitializeParams = new InstanceBootDiskInitializeParamsArgs()
-            {
-                Image = "debian-11",
-                Type = "pd-balanced",
-                Size = 20,
-            },
-        },
-        EnableDisplay = false,
-        NetworkInterfaces = new List<InstanceNetworkInterfaceArgs>()
-        {
-            new InstanceNetworkInterfaceArgs()
-            {
-                Network = network.Id,
-                AccessConfigs = new List<InstanceNetworkInterfaceAccessConfigArgs>()
-                {
-                    new InstanceNetworkInterfaceAccessConfigArgs()
-                    {
-                        NetworkTier = "PREMIUM",
-                        PublicPtrDomainName = DNS_NAME,
-                    },
-                },
-                StackType = "IPV4_ONLY",
-            },
-        },
-        MachineType = "e2-small",
-        Zone = ZONE,
-    });
-
-    //Pulumi.Gcp.Sql.DatabaseInstance
-    // Create a GCP resource (Storage Bucket)
     var bucket = new Bucket("mastodon-files", new BucketArgs
     {
-        Location = REGION.ToUpperInvariant(),
+        Location = settings.Region.Apply(r => r.ToUpperInvariant()),
         Cors = new List<BucketCorArgs>()
         {
             new BucketCorArgs()
@@ -95,22 +67,174 @@ return await Deployment.RunAsync(() =>
                 Origins = "*",
             },
         },
+
         // Mastodon needs ACLs. It uses it to hide media posted by suspended accounts.
         UniformBucketLevelAccess = false,
     });
 
-    var webServerDns = new Pulumi.Gcp.Dns.RecordSet(DNS_NAME, new Pulumi.Gcp.Dns.RecordSetArgs()
+    var bucketAcl = new BucketACL("access-acls", new BucketACLArgs()
     {
-        Name = DNS_NAME + ".",
-        ManagedZone = DNS_ZONE_NAME,
+        Bucket = bucket.Id,
+        RoleEntities = new InputList<string>()
+        {
+            serviceAccount.Email.Apply(email => $"OWNER:user-{email}"),
+        },
+    });
+
+    var bucketKeys = new HmacKey("bucket-keys", new HmacKeyArgs()
+    {
+        ServiceAccountEmail = serviceAccount.Email,
+    });
+
+    // kubernettes cluster
+
+    var publicIp = new GlobalAddress("public-ip", new GlobalAddressArgs()
+    {
+        Description = "IP address for the ingress to the Kubernettes cluster",
+    });
+
+    var dnsRecord = new Pulumi.Gcp.Dns.RecordSet("public-domain-name", new Pulumi.Gcp.Dns.RecordSetArgs()
+    {
+        Name = settings.DomainName.Apply(n => n + "."),
+        ManagedZone = settings.DnsZoneName,
         Ttl = 60,
         Type = "A",
-        Rrdatas = webServer.NetworkInterfaces.First().Apply(i => i.AccessConfigs.First().NatIp),
+        Rrdatas = publicIp.Address,
     });
+
+    var managedCert = new ManagedSslCertificate("managed-cert", new ManagedSslCertificateArgs()
+    {
+        Description = "Certificate for public Mastodon web services.",
+        Managed = new ManagedSslCertificateManagedArgs()
+        {
+            Domains = new InputList<string>()
+            {
+                settings.DomainName,
+            },
+        },
+    });
+
+    var myKube = new MyKubeProvider(settings);
+
+    // helm chart values
+    var secretKeyBase = new RandomPassword("secret-key-base", new RandomPasswordArgs()
+    {
+        Length = 128,
+    });
+    var otpSecret = new RandomPassword("otp-secret", new RandomPasswordArgs()
+    {
+        Length = 128,
+    });
+    var postgresPassword = new RandomPassword("postgres-password", new RandomPasswordArgs()
+    {
+        Length = 48,
+    });
+    var redisPassword = new RandomPassword("redis-password", new RandomPasswordArgs()
+    {
+        Length = 48,
+    });
+    var vapidKey = new VapidKey(cfg);
+
+    var chartValues = new Dictionary<string, object>()
+    {
+        { "image", new Dictionary<string, object>()
+            {
+                { "tag", "v4.1.0" },
+            }
+        },
+        { "mastodon", new Dictionary<string, object>()
+            {
+                { "local_domain", settings.DomainName },
+                { "s3", new Dictionary<string, object>()
+                    {
+                        { "enabled", true },
+                        { "access_key", bucketKeys.AccessId },
+                        { "access_secret", bucketKeys.Secret },
+                        { "bucket", bucket.Id },
+                        { "endpoint", "https://storage.googleapis.com" },
+                        { "hostname", "storage.googleapis.com" },
+                        { "region", settings.Region },
+                    }
+                },
+                { "secrets", new Dictionary<string, object>()
+                    {
+                        { "secret_key_base", secretKeyBase.Result },
+                        { "otp_secret", otpSecret.Result },
+                        { "vapid", new Dictionary<string, object>()
+                            {
+                                { "private_key", vapidKey.PrivateKey },
+                                { "public_key", vapidKey.PublicKey },
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        { "ingress", new Dictionary<string, object>()
+            {
+                { "tls", null! },
+                { "annotations", new Dictionary<string, object>()
+                    {
+                        { "kubernetes.io/ingress.class", "gke" },
+                        { "kubernetes.io/ingress.global-static-ip-name", publicIp.Address },
+                        { "networking.gke.io/managed-certificates", managedCert.Id },
+                    }
+                },
+                { "hosts", new List<Dictionary<string, object>>()
+                    {
+                        new Dictionary<string, object>()
+                        {
+                            { "host", settings.DomainName },
+                            { "paths", new List<Dictionary<string, object>>()
+                                {
+                                    new Dictionary<string, object>()
+                                    {
+                                        { "path", "/" },
+                                    },
+                                }
+                            },
+                        },
+                    }
+                },
+            }
+        },
+        { "elasticsearch", new Dictionary<string, object>()
+            {
+                { "enabled", false }
+            }
+        },
+        { "postgresql", new Dictionary<string, object>()
+            {
+                { "auth", new Dictionary<string, object>()
+                    {
+                        { "password", postgresPassword },
+                    }
+                },
+            }
+        },
+        { "redis", new Dictionary<string, object>()
+            {
+                // This makes a node, rather than a multi-node cluster
+                { "architecture", "standalone" },
+                { "password", redisPassword },
+            }
+        },
+    };
+
+    var chart = new Chart("mastodon-chart", new LocalChartArgs()
+    {
+        Path = "./chart",
+        Values = chartValues,
+    }, new ComponentResourceOptions()
+    {
+        Provider = myKube.KubeProvider,
+    });
+
 
     // Export the DNS name of the bucket
     return new Dictionary<string, object?>
     {
-        ["bucketName"] = bucket.Url
+        ["bucketName"] = bucket.Url,
+        ["globalIp"] = publicIp.Address,
     };
 });

@@ -1,2 +1,6 @@
 config:
+  MastodonPulumi:VapidPrivateKey:
+    secure: AAABAMudn4uE0ZgnpbuhmcY8VfJEmeXiHCCalbCjlmf/SnXf784kHO1CO28E5/Jp5L7W5ykBmB+8LJvmWx7t0LWzXqNDlQVjikEYKA==
+  MastodonPulumi:VapidPublicKey:
+    secure: AAABALDxiqkyyZrZoc05jqFTLSfSnaol3uWfS4NLbKzSjNX3sZx9MOVEgJfBkXaPJDz9BtpD5lMaGEefFgK4ypYGbVCxX43U1gzGSJU8/UX4jgp9XGumTvbpKBq7+F1Hj8MUSAu9IkFTnCEGoRRSzWYPJrmy2FaE
   gcp:project: masto-test-373603
