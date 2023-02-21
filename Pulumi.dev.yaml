@@ -1,4 +1,6 @@
 config:
+  MastodonPulumi:SmtpPassword:
+    secure: AAABAI1wasMP6XC1AKFFU9sNinbMGx8lIbZK8EW1LANaw2xiqCg/69aSQYoD5288jxZaI3iJ7Bz78ktzSa4zW8uPhANn10i6eVE5y7RNRso6lHSlCDrc1MYHxsU1cldtxtWlP0U=
   MastodonPulumi:VapidPrivateKey:
     secure: AAABAMudn4uE0ZgnpbuhmcY8VfJEmeXiHCCalbCjlmf/SnXf784kHO1CO28E5/Jp5L7W5ykBmB+8LJvmWx7t0LWzXqNDlQVjikEYKA==
   MastodonPulumi:VapidPublicKey:

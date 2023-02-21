@@ -1,8 +1,10 @@
 ﻿using Pulumi;
 using Pulumi.Gcp.Compute;
+using Pulumi.Gcp.Compute.Inputs;
 using Pulumi.Gcp.Container;
 using Pulumi.Gcp.Container.Inputs;
 using Pulumi.Gcp.Container.Outputs;
+using System.Collections.Generic;
 
 namespace MastodonPulumi
 {
@@ -12,6 +14,31 @@ namespace MastodonPulumi
         {
             var network = new Network("mastodon-network", new NetworkArgs()
             {
+            });
+
+            var firewall = new Firewall("mastodon-firewall", new FirewallArgs()
+            {
+                Network = network.Id,
+                Allows = new List<FirewallAllowArgs>()
+                {
+                    new FirewallAllowArgs()
+                    {
+                        Ports = new List<string>()
+                        {
+                            "80",
+                            "443",
+                        },
+                        Protocol = "tcp",
+                    },
+                    new FirewallAllowArgs()
+                    {
+                        Protocol = "icmp",
+                    },
+                },
+                SourceRanges = new List<string>()
+                {
+                    "0.0.0.0/0",
+                },
             });
 
             var cluster = new Cluster("mastodon-cluster", new ClusterArgs()
@@ -33,6 +60,13 @@ namespace MastodonPulumi
                 },
                 MasterAuthorizedNetworksConfig = new ClusterMasterAuthorizedNetworksConfigArgs()
                 {
+                    // TODO: figure out if we really need to only allow our IP to access the control plane.
+                    CidrBlocks = new ClusterMasterAuthorizedNetworksConfigCidrBlockArgs()
+                    {
+                        CidrBlock = $"{settings.MyIp}/32",
+                        DisplayName = "My IP",
+                    },
+                    GcpPublicCidrsAccessEnabled = false,
                 },
                 ReleaseChannel = new ClusterReleaseChannelArgs()
                 {
@@ -53,7 +87,11 @@ namespace MastodonPulumi
                 },
                 new CustomResourceOptions()
                 {
-                    DependsOn = cluster,
+                    DependsOn = new InputList<Resource>()
+                    {
+                        cluster,
+                        firewall,
+                    },
                 }
             );
         }

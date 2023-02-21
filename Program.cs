@@ -9,9 +9,6 @@ using Pulumi.Kubernetes.Helm;
 using Pulumi.Kubernetes.Helm.V3;
 using Pulumi.Random;
 using System.Collections.Generic;
-using System.Net;
-using System.Net.Http;
-using System.Threading.Tasks;
 
 if (args.Length != 0 && args[0] == "gen-vapid")
 {
@@ -22,31 +19,10 @@ if (args.Length != 0 && args[0] == "gen-vapid")
     return 1;
 }
 
-return await Deployment.RunAsync(() =>
+return await Deployment.RunAsync(async () =>
 {
     var cfg = new Config();
-    var settings = new Settings(cfg);
-
-    //var firewall = new Firewall("mastodon-firewall", new FirewallArgs()
-    //{
-    //    Network = network.Id,
-    //    Allows = new List<FirewallAllowArgs>()
-    //    {
-    //        new FirewallAllowArgs()
-    //        {
-    //            Ports = new List<string>()
-    //            {
-    //                "80",
-    //                "443",
-    //            },
-    //            Protocol = "tcp",
-    //        },
-    //    },
-    //    SourceRanges = new List<string>()
-    //    {
-    //        myIp.ToString(),
-    //    },
-    //});
+    var settings = await Settings.LoadSettingsAsync(cfg);
 
     // file bucket
 
@@ -133,93 +109,14 @@ return await Deployment.RunAsync(() =>
     {
         Length = 48,
     });
-    var vapidKey = new VapidKey(cfg);
 
-    var chartValues = new Dictionary<string, object>()
-    {
-        { "image", new Dictionary<string, object>()
-            {
-                { "tag", "v4.1.0" },
-            }
-        },
-        { "mastodon", new Dictionary<string, object>()
-            {
-                { "local_domain", settings.DomainName },
-                { "s3", new Dictionary<string, object>()
-                    {
-                        { "enabled", true },
-                        { "access_key", bucketKeys.AccessId },
-                        { "access_secret", bucketKeys.Secret },
-                        { "bucket", bucket.Id },
-                        { "endpoint", "https://storage.googleapis.com" },
-                        { "hostname", "storage.googleapis.com" },
-                        { "region", settings.Region },
-                    }
-                },
-                { "secrets", new Dictionary<string, object>()
-                    {
-                        { "secret_key_base", secretKeyBase.Result },
-                        { "otp_secret", otpSecret.Result },
-                        { "vapid", new Dictionary<string, object>()
-                            {
-                                { "private_key", vapidKey.PrivateKey },
-                                { "public_key", vapidKey.PublicKey },
-                            }
-                        },
-                    }
-                },
-            }
-        },
-        { "ingress", new Dictionary<string, object>()
-            {
-                { "tls", null! },
-                { "annotations", new Dictionary<string, object>()
-                    {
-                        { "kubernetes.io/ingress.class", "gke" },
-                        { "kubernetes.io/ingress.global-static-ip-name", publicIp.Address },
-                        { "networking.gke.io/managed-certificates", managedCert.Id },
-                    }
-                },
-                { "hosts", new List<Dictionary<string, object>>()
-                    {
-                        new Dictionary<string, object>()
-                        {
-                            { "host", settings.DomainName },
-                            { "paths", new List<Dictionary<string, object>>()
-                                {
-                                    new Dictionary<string, object>()
-                                    {
-                                        { "path", "/" },
-                                    },
-                                }
-                            },
-                        },
-                    }
-                },
-            }
-        },
-        { "elasticsearch", new Dictionary<string, object>()
-            {
-                { "enabled", false }
-            }
-        },
-        { "postgresql", new Dictionary<string, object>()
-            {
-                { "auth", new Dictionary<string, object>()
-                    {
-                        { "password", postgresPassword },
-                    }
-                },
-            }
-        },
-        { "redis", new Dictionary<string, object>()
-            {
-                // This makes a node, rather than a multi-node cluster
-                { "architecture", "standalone" },
-                { "password", redisPassword },
-            }
-        },
-    };
+    var chartValues = HelmChart.CreateValues(
+        settings.DomainName, settings.Region,
+        bucket.Id, bucketKeys.AccessId, bucketKeys.Secret,
+        secretKeyBase.Result, otpSecret.Result, settings.VapidKey.PublicKey, settings.VapidKey.PrivateKey,
+        publicIp.Name, managedCert.Name,
+        postgresPassword.Result, redisPassword.Result,
+        settings.SmtpPassword);
 
     var chart = new Chart("mastodon-chart", new LocalChartArgs()
     {
