@@ -7,7 +7,11 @@ Manual steps to complete:
 
 1. In GCP Console:
    1. Create a project
-   2. Register a domain name, or at least delegate the zone to GCP
+   2. Enable these APIs:
+      1. Cloud DNS
+      2. Compute
+      3. Kubernetes
+   3. Register a domain name, or at least delegate the zone to GCP
 2. Create a send-grid account and set it up with your domain above
 
 Once you have setup your project, clone this repo and
@@ -59,3 +63,4 @@ Helm chart. This includes setting up the right DNS records and
 * Make sure the way we are generating the Vapid key pair is actually compatible
   with Vapid and is not somehow insecure. See [Vapid's code](https://github.com/ClearlyClaire/webpush/blob/master/lib/webpush/vapid_key.rb#L33-L57).
 * See if there is a way to reduce the cost of running this.
+* Figure out why the GKE cluster seems to be in a "repairing" state often after running `pulumi up`

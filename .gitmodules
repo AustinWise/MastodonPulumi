@@ -1,4 +1,4 @@
 [submodule "chart"]
 	path = chart
-	url = https://github.com/mastodon/chart
-	branch = main
+	url = https://github.com/AustinWise/mastodon-chart.git
+	branch = austin/gke

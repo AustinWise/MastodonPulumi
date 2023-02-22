@@ -9,7 +9,7 @@ namespace MastodonPulumi
             Output<string> domainName, Output<string> region,
             Output<string> bucketId, Output<string> bucketAccessId, Output<string> bucketSecret,
             Output<string> secretKeyBase, Output<string> otpSecret, Output<string> vapidPublicKey, Output<string> vapidPrivateKey,
-            Output<string> publicIp, Output<string> managedCertId,
+            Output<string> publicIp,
             Output<string> postgresPassword, Output<string> redisPassword,
             Output<string> smtpPassword)
         {
@@ -17,18 +17,13 @@ namespace MastodonPulumi
             {
                 { "image", new { tag = "v4.1.0" }
                 },
-                { "elasticsearch", new Dictionary<string, object>()
-                    {
-                        { "enabled", false }
-                    }
-                },
                 { "mastodon", new Dictionary<string, object>() },
             });
 
             ret = Output.Tuple(ret, domainName, region, bucketId, bucketAccessId, bucketSecret).Apply(AddMastodonSettings);
             ret = Output.Tuple(ret, secretKeyBase, otpSecret, vapidPublicKey, vapidPrivateKey).Apply(AddMastodonSecret);
             ret = Output.Tuple(ret, smtpPassword).Apply(AddMastodonSmtp);
-            ret = Output.Tuple(ret, domainName, publicIp, managedCertId).Apply(AddIngress);
+            ret = Output.Tuple(ret, domainName, publicIp).Apply(AddIngress);
             ret = Output.Tuple(ret, postgresPassword, redisPassword).Apply(AddDatabase);
 
             return ret;
@@ -55,7 +50,7 @@ namespace MastodonPulumi
             return dic;
         }
 
-        private static Dictionary<string, object> AddMastodonSecret((Dictionary<string, object>, string, string, string, string) tup)
+        private static Dictionary<string, object> AddMastodonSecret((Dictionary<string, object> dic, string secretKeyBase, string otpSecret, string vapidPublicKey, string vapidPrivateKey) tup)
         {
             (Dictionary<string, object> dic, string secretKeyBase, string otpSecret, string vapidPublicKey, string vapidPrivateKey) = tup;
             var masto = (Dictionary<string, object>)dic["mastodon"];
@@ -89,17 +84,14 @@ namespace MastodonPulumi
             return dic;
         }
 
-        private static Dictionary<string, object> AddIngress((Dictionary<string, object>, string, string, string) tup)
+        private static Dictionary<string, object> AddIngress((Dictionary<string, object> dic, string domainName, string publicIp) tup)
         {
-            (Dictionary<string, object> dic, string domainName, string publicIp, string managedCertId) = tup;
+            (Dictionary<string, object> dic, string domainName, string publicIp) = tup;
             dic["ingress"] = new Dictionary<string, object>()
             {
-                { "tls", null! },
                 { "annotations", new Dictionary<string, object>()
                     {
-                        { "kubernetes.io/ingress.class", "gke" },
                         { "kubernetes.io/ingress.global-static-ip-name", publicIp },
-                        { "networking.gke.io/managed-certificates", managedCertId },
                     }
                 },
                 { "hosts", new List<Dictionary<string, object>>()
@@ -135,8 +127,6 @@ namespace MastodonPulumi
             };
             dic["redis"] = new Dictionary<string, object>()
             {
-                // This makes a node, rather than a multi-node cluster
-                { "architecture", "standalone" },
                 { "password", redisPassword },
             };
             return dic;

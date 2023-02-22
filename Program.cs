@@ -78,18 +78,6 @@ return await Deployment.RunAsync(async () =>
         Rrdatas = publicIp.Address,
     });
 
-    var managedCert = new ManagedSslCertificate("managed-cert", new ManagedSslCertificateArgs()
-    {
-        Description = "Certificate for public Mastodon web services.",
-        Managed = new ManagedSslCertificateManagedArgs()
-        {
-            Domains = new InputList<string>()
-            {
-                settings.DomainName,
-            },
-        },
-    });
-
     var myKube = new MyKubeProvider(settings);
 
     // helm chart values
@@ -114,7 +102,7 @@ return await Deployment.RunAsync(async () =>
         settings.DomainName, settings.Region,
         bucket.Id, bucketKeys.AccessId, bucketKeys.Secret,
         secretKeyBase.Result, otpSecret.Result, settings.VapidKey.PublicKey, settings.VapidKey.PrivateKey,
-        publicIp.Name, managedCert.Name,
+        publicIp.Name,
         postgresPassword.Result, redisPassword.Result,
         settings.SmtpPassword);
 
