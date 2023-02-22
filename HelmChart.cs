@@ -80,7 +80,7 @@ namespace MastodonPulumi
             //TODO: settings for more of these
             masto["smtp"] = new Dictionary<string, object>()
             {
-                { "from_address", "notifications@example.com" },
+                { "from_address", "notifications-test@kame.moe" },
                 { "server", "smtp.sendgrid.net" },
                 { "tls", true },
                 { "login", "apikey" },
