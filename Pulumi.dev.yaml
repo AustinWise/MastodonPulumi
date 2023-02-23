@@ -1,8 +1,8 @@
 config:
   MastodonPulumi:SmtpPassword:
-    secure: AAABAAlCiwWJBvWr76JwFyiF5LVcPc/T4bvVOXmFQeIGy1f0U5P4adu2Sm7g2b0lXZ98EPY5BsOULnMwB2G9en3PRxe+5CkQZY6eFiwAysifoITG/jX54Jrsx/GUHKYOoFLvMIA=
+    secure: AAABAPaWV8xCumrOqr0YCut8MQR0BDKWB8uYaO7jNQTGuk0utp3YofwOTJdP8uzPP5XvGZCSnyTypM9W4k7BJ6F5cIUXTa1gUN9Lw3hNqS25xzGN7He5lLJg8+af/cMOT84hgwk=
   MastodonPulumi:VapidPrivateKey:
-    secure: AAABAMAbP4TIY6d2pLEhRFK6yq5Kd8kiAu088I4nbBbN5cWYVu1bMRldU4VtDk4Ob4zVxSga+XobpNXVDIbCweCCzfzzMShdfOhkbA==
+    secure: AAABAPL6PyDSoSi6a842vSAkDKxFaRi62dUZ7y3zH0KJQ6Df1JFxy3PEe2JcodaholLdCOQuNf9H/1fvYoQLSvg/zZj9obCEMGuQmw==
   MastodonPulumi:VapidPublicKey:
-    secure: AAABADRPdMVHppeF/kmgaO6Gg6y++Vcn/vWcFgnCpYC94TZnUhOAJygYOAqylRsuhezfu6/XX2RNRrHbSqqfQRDDK/0vWtYtHJ4UXQfPfUkXh2mlEpcGZVICa43RxqLnsZ+lXZ+3U31nuXr40k0J2CgVTwt+lfnJ
-  gcp:project: masto-test-378603
+    secure: AAABALugOD2yRH7yoFRZrUSoqDMNRAiQrhGcsjbEfg9MhgNqWISzhuPREinxQm0w93d9/d+vVfo7rq5q3Cn7R/JVXwMJ8MDKks36OZyeu14uP/3FIIpDuE5GDqM0kA+FC/BvV1VKA1E4LCLGuS1anDwM3cXrkfdV
+  gcp:project: scientific-air-378704

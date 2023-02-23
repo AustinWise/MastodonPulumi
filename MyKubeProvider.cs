@@ -10,11 +10,11 @@ namespace MastodonPulumi
 {
     class MyKubeProvider
     {
-        public MyKubeProvider(Settings settings)
+        public MyKubeProvider(Settings settings, CustomResourceOptions requiredServices)
         {
             var network = new Network("mastodon-network", new NetworkArgs()
             {
-            });
+            }, requiredServices);
 
             var firewall = new Firewall("mastodon-firewall", new FirewallArgs()
             {
@@ -39,7 +39,7 @@ namespace MastodonPulumi
                 {
                     "0.0.0.0/0",
                 },
-            });
+            }, requiredServices);
 
             var cluster = new Cluster("mastodon-cluster", new ClusterArgs()
             {
@@ -76,23 +76,25 @@ namespace MastodonPulumi
                 {
                     EvaluationMode = "DISABLED",
                 },
-            });
+            }, requiredServices);
 
             var kubeConfig = Output.Tuple(cluster.Name, cluster.Endpoint, cluster.MasterAuth).Apply(t => GetKubeconfig(t.Item1, t.Item2, t.Item3));
+
+            requiredServices = CustomResourceOptions.Merge(requiredServices, new CustomResourceOptions()
+            {
+                DependsOn = new InputList<Resource>()
+                    {
+                        cluster,
+                        firewall,
+                    },
+            });
 
             this.KubeProvider = new Pulumi.Kubernetes.Provider("mastodon-cluster-kube",
                 new Pulumi.Kubernetes.ProviderArgs()
                 {
                     KubeConfig = kubeConfig,
                 },
-                new CustomResourceOptions()
-                {
-                    DependsOn = new InputList<Resource>()
-                    {
-                        cluster,
-                        firewall,
-                    },
-                }
+                requiredServices
             );
         }
 
