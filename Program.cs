@@ -1,12 +1,11 @@
 ﻿using MastodonPulumi;
 using Pulumi;
 using Pulumi.Gcp.Compute;
-using Pulumi.Gcp.Compute.Inputs;
 using Pulumi.Gcp.ServiceAccount;
 using Pulumi.Gcp.Storage;
 using Pulumi.Gcp.Storage.Inputs;
-using Pulumi.Kubernetes.Helm;
 using Pulumi.Kubernetes.Helm.V3;
+using Pulumi.Kubernetes.Types.Inputs.Helm.V3;
 using Pulumi.Random;
 using System.Collections.Generic;
 
@@ -106,11 +105,16 @@ return await Deployment.RunAsync(async () =>
         postgresPassword.Result, redisPassword.Result,
         settings.SmtpPassword);
 
-    var chart = new Chart("mastodon-chart", new LocalChartArgs()
+    var chart = new Release("mastodon-chart", new ReleaseArgs()
     {
-        Path = "./chart",
+        Chart = "mastodon",
+        Version = "4.0.0",
+        RepositoryOpts = new RepositoryOptsArgs()
+        {
+            Repo = "https://storage.googleapis.com/masto-test-helm-charts/",
+        },
         Values = chartValues,
-    }, new ComponentResourceOptions()
+    }, new CustomResourceOptions()
     {
         Provider = myKube.KubeProvider,
     });

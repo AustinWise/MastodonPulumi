@@ -15,7 +15,10 @@ namespace MastodonPulumi
         {
             Output<Dictionary<string, object>> ret = Output.Create(new Dictionary<string, object>()
             {
-                { "image", new { tag = "v4.1.0" }
+                { "image", new Dictionary<string, object>()
+                    {
+                        { "tag", "v4.1.0" },
+                    }
                 },
                 { "mastodon", new Dictionary<string, object>() },
             });
@@ -80,6 +83,11 @@ namespace MastodonPulumi
                 { "tls", true },
                 { "login", "apikey" },
                 { "password", password },
+                // TODO: figure out why connect fails
+                // error message: OpenSSL::SSL::SSLError: SSL_connect returned=1 errno=0 peeraddr=x.x.x.x:587 state=error: wrong version number
+                // https://github.com/mastodon/documentation/issues/846
+                { "openssl_verify_mode", "none" },
+                { "port", 465 },
             };
             return dic;
         }

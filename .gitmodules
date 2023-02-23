@@ -1,4 +1,0 @@
-[submodule "chart"]
-	path = chart
-	url = https://github.com/AustinWise/mastodon-chart.git
-	branch = austin/gke

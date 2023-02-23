@@ -18,9 +18,9 @@ Once you have setup your project, clone this repo and
 configure you Pulumi stack to use your GCP project:
 
 ```bash
-git clone --recurse-submodules https://github.com/AustinWise/MastodonPulumi.git
+git clone https://github.com/AustinWise/MastodonPulumi.git
 cd MastodonPulumi
-pulumi config set gcp:project "project-name-goes-here"
+pulumi config set gcp:project "project-id-goes-here"
 ```
 
 Then run these commands to generate the Vapid public/private keypair:
@@ -30,15 +30,6 @@ dotnet run gen-vapid
 ```
 
 Run the commands printed by the above command.
-
-Then restore the Helm chart depandcies. You will need the [Helm](https://helm.sh/)
-command installed:
-
-```bash
-pushd chart
-helm dep update
-popd
-```
 
 Then deploy with:
 
@@ -57,10 +48,13 @@ Helm chart. This includes setting up the right DNS records and
   built into GCP. There is also a [Mailgun](https://www.pulumi.com/registry/packages/mailgun/)
   package for Pulumi.
 * Consider hosting the Postgres outside of the Kubernettes cluster using Google Cloud SQL. This could take care of the HA and backups and whatnot.
-* Switch to using the Helm Release resource, for supporting hooks on Mastodon version upgrade.
-  See [this blog post](https://www.pulumi.com/blog/full-access-to-helm-features-through-new-helm-release-resource-for-kubernetes/).
 * See if there is a nicer way to create the Values for the Helm chart.
 * Make sure the way we are generating the Vapid key pair is actually compatible
   with Vapid and is not somehow insecure. See [Vapid's code](https://github.com/ClearlyClaire/webpush/blob/master/lib/webpush/vapid_key.rb#L33-L57).
 * See if there is a way to reduce the cost of running this.
 * Figure out why the GKE cluster seems to be in a "repairing" state often after running `pulumi up`
+* Publish chart in a permanent location
+  * Or if the upstream chart is published, figure out how to make an overlay of some sort.
+* Figure out correct value for `openssl_verify_mode`.
+* Consider switching to the native provider for GCP.
+* See if it is possible to automatically enable APIs for GCP.
