@@ -115,7 +115,7 @@ return await Deployment.RunAsync(async () =>
         Version = "4.0.0",
         RepositoryOpts = new RepositoryOptsArgs()
         {
-            Repo = "https://storage.googleapis.com/masto-test-helm-charts/",
+            Repo = "https://storage.googleapis.com/mastodon-test-helm-charts/",
         },
         Values = chartValues,
     }, new CustomResourceOptions()

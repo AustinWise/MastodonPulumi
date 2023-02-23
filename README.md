@@ -54,3 +54,4 @@ Helm chart. This includes setting up the right DNS records and
   * Or if the upstream chart is published, figure out how to make an overlay of some sort.
 * Figure out correct value for `openssl_verify_mode`.
 * Consider switching to the native provider for GCP.
+* Prevent `pulumi down` from disabling APIs.
