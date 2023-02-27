@@ -8,6 +8,8 @@ namespace MastodonPulumi
     {
         public static CustomResourceOptions EnableRequiredServices()
         {
+            // TODO: figure out how to enable these APIs without disabling them on `pulumi down`
+            /*
             var dnsService = new Service("dns-service-enablement", new ServiceArgs()
             {
                 ServiceName = "dns.googleapis.com",
@@ -32,6 +34,8 @@ namespace MastodonPulumi
             };
 
             return ret;
+            */
+            return new CustomResourceOptions();
         }
     }
 }

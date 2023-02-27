@@ -7,7 +7,11 @@ Manual steps to complete:
 
 1. In GCP Console:
    1. Create a project
-   2. Create a Cloud DNS zone for your domain. Setup your registrar to
+   2. Enable these APIs:
+      1. [Cloud DNS](https://console.cloud.google.com/apis/library/dns.googleapis.com)
+      2. [Compute Engine](https://console.cloud.google.com/apis/library/compute.googleapis.com)
+      3. [Kubernetes Engine](https://console.cloud.google.com/apis/library/container.googleapis.com)
+   3. Create a Cloud DNS zone for your domain. Setup your registrar to
       [delegate DNS resolution to Google Cloud](https://cloud.google.com/dns/docs/update-name-servers).
 2. Create a send-grid account and set it up with your domain above
 
@@ -54,4 +58,4 @@ Helm chart. This includes setting up the right DNS records and
   * Or if the upstream chart is published, figure out how to make an overlay of some sort.
 * Figure out correct value for `openssl_verify_mode`.
 * Consider switching to the native provider for GCP.
-* Prevent `pulumi down` from disabling APIs.
+* Figure out how to enables APIs with `pulumi down` disabling them APIs.
